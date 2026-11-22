@@ -1,0 +1,23 @@
+import { pgEnum } from "drizzle-orm/pg-core";
+import * as e from "@sita/shared";
+
+export const roleCodeEnum = pgEnum("role_code", e.ROLE_CODES);
+export const semesterEnum = pgEnum("semester", e.SEMESTERS);
+export const thesisStageEnum = pgEnum("thesis_stage", e.THESIS_STAGES);
+export const thesisStatusEnum = pgEnum("thesis_status", e.THESIS_STATUSES);
+export const supervisorTypeEnum = pgEnum("supervisor_type", e.SUPERVISOR_TYPES);
+export const logbookStatusEnum = pgEnum("logbook_status", e.LOGBOOK_STATUSES);
+export const evalDecisionEnum = pgEnum("eval_decision", e.DECISIONS);
+export const activityCodeEnum = pgEnum("activity_code", e.ACTIVITY_CODES);
+export const requirementTypeEnum = pgEnum("requirement_type", e.REQUIREMENT_TYPES);
+export const applicationStatusEnum = pgEnum("application_status", e.APPLICATION_STATUSES);
+export const scanStatusEnum = pgEnum("scan_status", e.SCAN_STATUSES);
+export const reviewDecisionEnum = pgEnum("review_decision", e.REVIEW_DECISIONS);
+export const approvalDecisionEnum = pgEnum("approval_decision", e.APPROVAL_DECISIONS);
+export const scheduleStatusEnum = pgEnum("schedule_status", e.SCHEDULE_STATUSES);
+export const examinerRoleEnum = pgEnum("examiner_role", e.EXAMINER_ROLES);
+export const sessionOutcomeEnum = pgEnum("session_outcome", e.SESSION_OUTCOMES);
+export const revisionItemStatusEnum = pgEnum("revision_item_status", e.REVISION_ITEM_STATUSES);
+export const revisionSubmissionStatusEnum = pgEnum("revision_submission_status", e.REVISION_SUBMISSION_STATUSES);
+export const emailStatusEnum = pgEnum("email_status", e.EMAIL_STATUSES);
+export const topicStatusEnum = pgEnum("topic_status", e.TOPIC_STATUSES);

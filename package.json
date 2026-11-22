@@ -1,0 +1,16 @@
+{
+  "name": "sita-msf",
+  "private": true,
+  "scripts": {
+    "dev": "bun run dev:api & bun run dev:web",
+    "dev:api": "bun run --filter @sita/api dev",
+    "dev:web": "bun run --filter @sita/web dev",
+    "db:push": "bun run --filter @sita/api db:push",
+    "db:seed": "bun run --filter @sita/api db:seed",
+    "typecheck": "bun run --filter '*' typecheck"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ]
+}
