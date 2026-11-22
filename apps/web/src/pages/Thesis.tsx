@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { THESIS_STAGES, THESIS_STAGE_LABELS } from "@sita/shared";
+import { PROPOSAL_STAGES, THESIS_STAGES, THESIS_STAGE_LABELS } from "@sita/shared";
 import { client, unwrap } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
@@ -17,7 +17,7 @@ type T = {
 };
 
 function ThesisCard({ t }: { t: T }) {
-  const idx = THESIS_STAGES.indexOf(t.stage);
+  const idx = PROPOSAL_STAGES.indexOf(t.stage as any);
   return (
     <div className="flex flex-col gap-4 sm:gap-5 max-w-5xl">
       <Card>
@@ -30,21 +30,21 @@ function ThesisCard({ t }: { t: T }) {
         </CardContent>
       </Card>
 
-      {/* Tahapan Tesis Responsif: 2 kolom di HP, 5 kolom di desktop */}
+      {/* Tahapan Tesis (Skup Proposal: 3 Tahap) */}
       <Card>
         <CardHeader className="p-4 sm:p-5 pb-2">
           <CardTitle className="text-base sm:text-lg">Tahap Saat Ini</CardTitle>
         </CardHeader>
         <CardContent className="p-4 sm:p-5 pt-2">
-          <ol className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-            {THESIS_STAGES.map((s, i) => (
+          <ol className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            {PROPOSAL_STAGES.map((s, i) => (
               <li
                 key={s}
                 className={cn(
-                  "rounded-md border px-2.5 py-2 text-center text-xs sm:text-sm transition-all",
-                  i < idx && "bg-emerald-50 border-emerald-200 text-emerald-800 font-medium",
-                  i === idx && "bg-primary border-primary text-primary-foreground font-semibold shadow-xs col-span-2 sm:col-span-1",
-                  i > idx && "border-border text-muted-foreground bg-muted/20"
+                  "rounded-md border px-3 py-2.5 text-center text-xs sm:text-sm transition-all",
+                  idx !== -1 && i < idx && "bg-emerald-50 border-emerald-200 text-emerald-800 font-medium",
+                  i === idx && "bg-primary border-primary text-primary-foreground font-semibold shadow-xs",
+                  (idx === -1 || i > idx) && "border-border text-muted-foreground bg-muted/20"
                 )}
               >
                 {THESIS_STAGE_LABELS[s]}
@@ -103,7 +103,7 @@ export function ThesisPage() {
   const q = useQuery({
     queryKey: ["thesis", me?.role],
     enabled: !!me,
-    queryFn: async () => (isStudent ? [await unwrap(client.api.v1.thesis.me.$get())] : await unwrap(client.api.v1.thesis.$get())) as T[],
+    queryFn: async () => (isStudent ? [await unwrap(client.api.thesis.me.$get())] : await unwrap(client.api.thesis.$get())) as T[],
   });
 
   return (

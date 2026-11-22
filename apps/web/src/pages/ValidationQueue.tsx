@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "@tanstack/react-form";
 import { evaluationSchema } from "@sita/shared";
-import { client, downloadAttachment, unwrap } from "@/lib/api";
+import { client, unwrap } from "@/lib/api";
 import { fmtDate } from "@/lib/utils";
 import { Button, Card, CardContent, CardHeader, CardTitle, FieldError, Label, Select, Textarea } from "@/components/ui";
 
@@ -11,14 +11,14 @@ const SCORES = [1, 2, 3, 4, 5];
 
 export function ValidationQueuePage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const { data = [], isLoading, error } = useQuery({ queryKey: ["queue"], queryFn: () => unwrap(client.api.v1.evaluations.queue.$get()) });
+  const { data = [], isLoading, error } = useQuery({ queryKey: ["queue"], queryFn: () => unwrap(client.api.evaluations.queue.$get()) });
   const selected = data.find((d) => d.id === selectedId);
 
   return (
     <div className="flex flex-col gap-4 sm:gap-5 max-w-6xl">
       <div>
         <h1 className="text-lg sm:text-2xl font-bold tracking-tight">Antrean Validasi Logbook</h1>
-        <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">Penilaian dan pemberian umpan balik bimbingan mahasiswa.</p>
+        <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">Penilaian dan pemberian umpan balik bimbingan mahasiswa oleh dosen pembimbing.</p>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[340px_1fr]">
@@ -36,7 +36,7 @@ export function ValidationQueuePage() {
             {error && <p className="text-xs sm:text-sm text-destructive">{error.message}</p>}
             {!isLoading && data.length === 0 && <p className="text-xs sm:text-sm text-muted-foreground py-3">Antrean kosong, seluruh bimbingan telah divalidasi 🎉</p>}
             <ul className="flex flex-col gap-2">
-              {data.map((l) => (
+              {data.map((l: any) => (
                 <li key={l.id}>
                   <button
                     type="button"
@@ -51,6 +51,13 @@ export function ValidationQueuePage() {
                     <div className="text-[11px] sm:text-xs text-muted-foreground mt-1">
                       {l.studentName} ({l.nim}) · {fmtDate(l.sessionDate)} · <span className="font-mono">v{l.version}</span>
                     </div>
+                    {l.totalSupervisors > 1 && (
+                      <div className="mt-1.5 flex items-center gap-1.5 text-[11px]">
+                        <span className="rounded-full bg-amber-100 px-2 py-0.5 font-medium text-amber-800">
+                          {l.approvedCount}/{l.totalSupervisors} Pembimbing Menyetujui
+                        </span>
+                      </div>
+                    )}
                   </button>
                 </li>
               ))}
@@ -85,15 +92,16 @@ function EvaluationPanel({
     progress: string;
     challenges: string;
     nextSteps: string;
-    attachmentName: string | null;
-    attachmentKey: string | null;
     version: number;
+    totalSupervisors?: number;
+    approvedCount?: number;
+    supervisors?: { lecturerId: string; name: string; type: string; approved: boolean }[];
   };
   onDone: () => void;
 }) {
   const qc = useQueryClient();
   const save = useMutation({
-    mutationFn: (v: FormValues) => unwrap(client.api.v1.evaluations.$post({ json: v as any })),
+    mutationFn: (v: FormValues) => unwrap(client.api.evaluations.$post({ json: v as any })),
     onSuccess: () => {
       qc.invalidateQueries();
       onDone();
@@ -124,8 +132,12 @@ function EvaluationPanel({
     <form.Field name={name}>
       {(f) => (
         <div>
-          <Label className="text-xs sm:text-sm font-medium">{label}</Label>
-          <Select className="mt-1 text-xs sm:text-sm" value={f.state.value} onChange={(e) => f.handleChange(Number(e.target.value))}>
+          <Label className="text-xs sm:text-sm">{label}</Label>
+          <Select
+            className="mt-1 text-xs sm:text-sm"
+            value={f.state.value}
+            onChange={(e) => f.handleChange(Number(e.target.value))}
+          >
             {SCORES.map((s) => (
               <option key={s} value={s}>{s} - {s === 5 ? "Sangat Baik" : s === 4 ? "Baik" : s === 3 ? "Cukup" : s === 2 ? "Kurang" : "Sangat Kurang"}</option>
             ))}
@@ -147,7 +159,33 @@ function EvaluationPanel({
         </p>
       </CardHeader>
       <CardContent className="p-4 sm:p-5 pt-2 flex flex-col gap-4">
-        {/* Info Detail Ringkasan */}
+        {/* Status Validasi Tim Pembimbing */}
+        {item.supervisors && item.supervisors.length > 1 && (
+          <div className="rounded-lg bg-amber-50/70 border border-amber-200 p-3 text-xs text-amber-900">
+            <div className="font-semibold flex items-center justify-between">
+              <span>Status Validasi Tim Pembimbing:</span>
+              <span className="font-mono bg-white px-2 py-0.5 rounded border border-amber-300">
+                {item.approvedCount} / {item.totalSupervisors} Disetujui
+              </span>
+            </div>
+            <p className="text-[11px] text-amber-800 mt-0.5">
+              Kedua dosen pembimbing wajib memvalidasi bimbingan ini agar status logbook resmi disetujui.
+            </p>
+            <ul className="mt-2 space-y-1">
+              {item.supervisors.map((s, idx) => (
+                <li key={idx} className="flex items-center gap-1.5">
+                  {s.approved ? (
+                    <span className="text-emerald-700 font-medium">✓ {s.name} ({s.type.replace("_", " ")}): Disetujui</span>
+                  ) : (
+                    <span className="text-amber-800">⏳ {s.name} ({s.type.replace("_", " ")}): Menunggu Validasi</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Info Detail Ringkasan Bimbingan */}
         <dl className="grid gap-2.5 rounded-lg bg-muted/30 border border-border p-3.5 text-xs sm:text-sm">
           <div>
             <dt className="font-semibold text-foreground">Progres yang Dicapai:</dt>
@@ -161,20 +199,6 @@ function EvaluationPanel({
             <dt className="font-semibold text-foreground">Rencana Tindak Lanjut:</dt>
             <dd className="text-muted-foreground mt-0.5 leading-relaxed">{item.nextSteps || "-"}</dd>
           </div>
-          {item.attachmentKey && (
-            <div>
-              <dt className="font-semibold text-foreground">Berkas Lampiran:</dt>
-              <dd className="mt-1">
-                <button
-                  type="button"
-                  className="text-primary font-medium hover:underline inline-flex items-center gap-1"
-                  onClick={() => downloadAttachment(item.attachmentKey!, item.attachmentName!)}
-                >
-                  📎 {item.attachmentName}
-                </button>
-              </dd>
-            </div>
-          )}
         </dl>
 
         {/* Form Penilaian & Keputusan */}

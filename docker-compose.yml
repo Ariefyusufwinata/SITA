@@ -1,30 +1,44 @@
 services:
   db:
     image: postgres:16-alpine
+    restart: unless-stopped
     environment:
-      POSTGRES_DB: sita_msf
-      POSTGRES_USER: sita
-      POSTGRES_PASSWORD: sita
-    volumes: [pgdata:/var/lib/postgresql/data]
+      POSTGRES_DB: ${POSTGRES_DB:-sita_msf}
+      POSTGRES_USER: ${POSTGRES_USER:-sita}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sita}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U sita -d sita_msf"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sita} -d ${POSTGRES_DB:-sita_msf}"]
       interval: 5s
       retries: 10
 
   api:
-    build: { context: ., dockerfile: apps/api/Dockerfile }
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
     environment:
-      DATABASE_URL: postgres://sita:sita@db:5432/sita_msf
-      JWT_SECRET: dev-secret-change-me
+      DATABASE_URL: ${DOCKER_DATABASE_URL:-postgres://sita:${POSTGRES_PASSWORD:-sita}@db:5432/${POSTGRES_DB:-sita_msf}}
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me}
       PORT: "3000"
-    depends_on: { db: { condition: service_healthy } }
-    volumes: [uploads:/app/apps/api/uploads]
-    ports: ["3000:3000"]
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - uploads:/app/apps/api/uploads
+    expose:
+      - "3000"
 
   web:
-    build: { context: ., dockerfile: apps/web/Dockerfile }
-    depends_on: [api]
-    ports: ["8080:80"]
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "${WEB_PORT:-3000}:80"
 
 volumes:
   pgdata:

@@ -54,3 +54,27 @@ export const selectTopicSchema = z.object({
   topicId: z.string().uuid("Pilih topik yang valid"),
 });
 export type SelectTopicInput = z.infer<typeof selectTopicSchema>;
+
+export const proposeTopicSchema = z.object({
+  title: z.string().min(5, "Judul topik minimal 5 karakter"),
+  description: z.string().min(10, "Deskripsi topik minimal 10 karakter"),
+  focusArea: z.string().min(3, "Bidang fokus riset wajib diisi"),
+  lecturerId: z.string().uuid("Pilih dosen pembimbing yang dituju"),
+});
+export type ProposeTopicInput = z.infer<typeof proposeTopicSchema>;
+
+export const seminarSubmissionSchema = z.object({
+  proposalDocumentUrl: z.string().min(5, "Tautan dokumen proposal thesis wajib diisi"),
+  presentationNotes: z.string().default(""),
+});
+export type SeminarSubmissionInput = z.infer<typeof seminarSubmissionSchema>;
+
+export const seminarEvaluationSchema = z.object({
+  seminarId: z.string().uuid("Pilih seminar yang valid"),
+  theoryMasteryScore: score,
+  methodologyScore: score,
+  writingQualityScore: score,
+  comments: z.string().default(""),
+  decision: z.enum(["LULUS", "LULUS_DENGAN_REVISI", "TIDAK_LULUS"]),
+});
+export type SeminarEvaluationInput = z.infer<typeof seminarEvaluationSchema>;

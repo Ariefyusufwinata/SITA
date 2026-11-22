@@ -33,21 +33,42 @@ export function TopicsPage() {
   const [selectedFocus, setSelectedFocus] = useState<string>("SEMUA");
   const [modalOpen, setModalOpen] = useState(false);
   const [editingTopic, setEditingTopic] = useState<Topic | null>(null);
+  const [activeTab, setActiveTab] = useState<"catalog" | "propose">("catalog");
 
-  // Form State
+  // Form State Topik Admin
   const [formTitle, setFormTitle] = useState("");
   const [formDesc, setFormDesc] = useState("");
   const [formFocus, setFormFocus] = useState("");
   const [formLecturerId, setFormLecturerId] = useState("");
   const [formQuota, setFormQuota] = useState(2);
 
+  // Form State Pengajuan Topik Mandiri Mahasiswa
+  const [propTitle, setPropTitle] = useState("");
+  const [propDesc, setPropDesc] = useState("");
+  const [propFocus, setPropFocus] = useState("Digital Forensics");
+  const [propLecturerId, setPropLecturerId] = useState("");
+
   const isStudent = me?.role === "MAHASISWA";
-  const canManage = me?.role === "ADMIN_PRODI" || me?.role === "KOORDINATOR" || me?.role === "PEMBIMBING";
+  const canManage = me?.role === "ADMIN_PRODI" || me?.role === "KOORDINATOR" || me?.role === "PEMBIMBING" || me?.role === "KEPALA_PRODI";
 
   // Data Topik
   const { data: topics = [], isLoading } = useQuery({
     queryKey: ["topics"],
-    queryFn: () => unwrap(client.api.v1.topics.$get()),
+    queryFn: () => unwrap(client.api.topics.$get()),
+  });
+
+  // Data Dosen Pembimbing beserta Batas Kuota Bimbingan Dinamis dari Database
+  const { data: supervisorsWithQuota = [] } = useQuery({
+    queryKey: ["supervisors-quota"],
+    queryFn: async () => {
+      const res = await fetch("/api/topics/supervisors", {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("sita_token")}`,
+          ...(localStorage.getItem("sita_role_active") ? { "X-User-Role": localStorage.getItem("sita_role_active")! } : {}),
+        },
+      });
+      return res.json();
+    },
   });
 
   // Data Dosen Pembimbing untuk Admin saat menambah topik
@@ -55,10 +76,10 @@ export function TopicsPage() {
     queryKey: ["supervisors-list"],
     enabled: canManage,
     queryFn: async () => {
-      const res = await fetch("/api/v1/auth/dev-users");
+      const res = await fetch("/api/auth/dev-users");
       const users = await res.json();
       return users
-        .filter((u: any) => u.roles.some((r: any) => r.code === "PEMBIMBING" || r.code === "KOORDINATOR"))
+        .filter((u: any) => u.roles.some((r: any) => r.code === "PEMBIMBING" || r.code === "KOORDINATOR" || r.code === "KEPALA_PRODI"))
         .map((u: any) => ({
           userId: u.id,
           name: u.name,
@@ -71,20 +92,22 @@ export function TopicsPage() {
   const { data: thesisSupervisors = [] } = useQuery({
     queryKey: ["thesis-supervisors"],
     enabled: canManage,
-    queryFn: () => unwrap(client.api.v1.logbooks.supervisors.$get()).catch(() => []),
+    queryFn: () => unwrap(client.api.logbooks.supervisors.$get()).catch(() => []),
   });
 
   // Profil tesis mahasiswa saat ini untuk menandai topik yang sedang diambil
   const { data: myThesis } = useQuery({
     queryKey: ["my-thesis"],
     enabled: isStudent,
-    queryFn: () => unwrap(client.api.v1.thesis.me.$get()).catch(() => null),
+    queryFn: () => unwrap(client.api.thesis.me.$get()).catch(() => null),
   });
+
+  const hasActiveTopic = isStudent && !!myThesis?.title;
 
   // Mutasi: Pilih Topik (Mahasiswa)
   const selectMutation = useMutation({
     mutationFn: async (topicId: string) => {
-      const res = await fetch(`/api/v1/topics/${topicId}/select`, {
+      const res = await fetch(`/api/topics/${topicId}/select`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("sita_token")}`,
@@ -98,10 +121,36 @@ export function TopicsPage() {
     onSuccess: (data) => {
       alert(`Berhasil! ${data.message}`);
       qc.invalidateQueries();
-      nav({ to: "/tesis" });
+      nav({ to: "/" });
     },
     onError: (err: Error) => {
       alert(`Peringatan: ${err.message}`);
+    },
+  });
+
+  // Mutasi: Ajukan Topik Mandiri Mahasiswa ke Pembimbing
+  const proposeMutation = useMutation({
+    mutationFn: async (payload: { title: string; description: string; focusArea: string; lecturerId: string }) => {
+      const res = await fetch("/api/topics/propose", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("sita_token")}`,
+          ...(localStorage.getItem("sita_role_active") ? { "X-User-Role": localStorage.getItem("sita_role_active")! } : {}),
+        },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Gagal mengajukan topik mandiri");
+      return data;
+    },
+    onSuccess: (data) => {
+      alert(`Berhasil! ${data.message}`);
+      qc.invalidateQueries();
+      nav({ to: "/" });
+    },
+    onError: (err: Error) => {
+      alert(`Gagal: ${err.message}`);
     },
   });
 
@@ -109,7 +158,7 @@ export function TopicsPage() {
   const saveMutation = useMutation({
     mutationFn: async (topicData: any) => {
       const isEdit = !!editingTopic;
-      const url = isEdit ? `/api/v1/topics/${editingTopic.id}` : "/api/v1/topics";
+      const url = isEdit ? `/api/topics/${editingTopic.id}` : "/api/topics";
       const method = isEdit ? "PUT" : "POST";
 
       const res = await fetch(url, {
@@ -137,7 +186,7 @@ export function TopicsPage() {
   // Mutasi: Hapus Topik
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/v1/topics/${id}`, {
+      const res = await fetch(`/api/topics/${id}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("sita_token")}`,
@@ -216,8 +265,152 @@ export function TopicsPage() {
         )}
       </div>
 
-      {/* Bar Pencarian & Filter Bidang Fokus */}
-      <Card className="shadow-xs p-3 sm:p-4">
+      {/* Tab Switcher Mahasiswa: Topic Shopping vs Pengajuan Mandiri */}
+      {isStudent && (
+        <div className="flex border-b border-border gap-2">
+          <button
+            type="button"
+            onClick={() => setActiveTab("catalog")}
+            className={`pb-2.5 px-3 text-xs sm:text-sm font-semibold border-b-2 transition-all cursor-pointer ${
+              activeTab === "catalog"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Katalog Topic Shopping
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab("propose");
+              if (!propLecturerId && supervisorsWithQuota.length > 0) {
+                const firstAvailable = supervisorsWithQuota.find((s: any) => s.isAvailable);
+                if (firstAvailable) setPropLecturerId(firstAvailable.id);
+              }
+            }}
+            className={`pb-2.5 px-3 text-xs sm:text-sm font-semibold border-b-2 transition-all cursor-pointer ${
+              activeTab === "propose"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Ajukan Topik Mandiri ke Dosen Pembimbing
+          </button>
+        </div>
+      )}
+
+      {/* FORM PENGAJUAN TOPIK MANDIRI MAHASISWA */}
+      {isStudent && activeTab === "propose" ? (
+        <Card className="shadow-xs border-border">
+          <CardHeader className="p-4 sm:p-5 pb-2">
+            <CardTitle className="text-base sm:text-lg">Formulir Pengajuan Topik Mandiri</CardTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Jika Anda tidak memilih topik dari katalog, Anda dapat mengusulkan tema riset mandiri dan memilih dosen pembimbing yang kuotanya masih tersedia.
+            </p>
+          </CardHeader>
+          <CardContent className="p-4 sm:p-5 pt-2">
+            {hasActiveTopic ? (
+              <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 text-xs sm:text-sm text-foreground">
+                <span className="font-bold text-primary block mb-1">Anda Sudah Memiliki Topik Tugas Akhir Aktif</span>
+                Judul: <strong>"{myThesis?.title}"</strong>
+                <p className="text-muted-foreground mt-1">
+                  Mahasiswa yang telah memilih topik atau memiliki judul tesis aktif tidak dapat memilih atau mengajukan topik baru lagi.
+                </p>
+              </div>
+            ) : (
+            <form
+              className="flex flex-col gap-4"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!propLecturerId) {
+                  alert("Pilih dosen pembimbing tujuan");
+                  return;
+                }
+                proposeMutation.mutate({
+                  title: propTitle,
+                  description: propDesc,
+                  focusArea: propFocus,
+                  lecturerId: propLecturerId,
+                });
+              }}
+            >
+              <div>
+                <Label className="text-xs sm:text-sm">Judul Topik Riset yang Diajukan</Label>
+                <Input
+                  className="mt-1"
+                  placeholder="mis. Analisis Keamanan Protokol Komunikasi IoT Menggunakan Kriptografi Ringan"
+                  value={propTitle}
+                  onChange={(e) => setPropTitle(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <Label className="text-xs sm:text-sm">Bidang Fokus Riset</Label>
+                  <Select
+                    className="mt-1"
+                    value={propFocus}
+                    onChange={(e) => setPropFocus(e.target.value)}
+                  >
+                    <option value="Digital Forensics">Digital Forensics</option>
+                    <option value="Malware Analysis">Malware Analysis</option>
+                    <option value="Network Security">Network Security</option>
+                    <option value="Cloud Security">Cloud Security</option>
+                    <option value="Cryptography">Cryptography</option>
+                    <option value="Incident Response">Incident Response</option>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label className="text-xs sm:text-sm">Pilih Dosen Pembimbing Tujuan (Batas Kuota Dinamis)</Label>
+                  <Select
+                    className="mt-1"
+                    value={propLecturerId}
+                    onChange={(e) => setPropLecturerId(e.target.value)}
+                    required
+                  >
+                    <option value="" disabled>-- Pilih Dosen Pembimbing --</option>
+                    {supervisorsWithQuota.map((lc: any) => (
+                      <option
+                        key={lc.id}
+                        value={lc.id}
+                        disabled={!lc.isAvailable}
+                      >
+                        {lc.name} ({lc.activeSupervisees}/{lc.quota} Bimbingan {!lc.isAvailable ? "— KUOTA PENUH" : "— Tersedia"})
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+              </div>
+
+              <div>
+                <Label className="text-xs sm:text-sm">Deskripsi & Latar Belakang Riset</Label>
+                <Textarea
+                  rows={4}
+                  className="mt-1"
+                  placeholder="Jelaskan latar belakang masalah, urgensi riset, serta metode yang direncanakan…"
+                  value={propDesc}
+                  onChange={(e) => setPropDesc(e.target.value)}
+                  required
+                />
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full sm:w-auto self-start mt-1"
+                disabled={proposeMutation.isPending}
+              >
+                {proposeMutation.isPending ? "Mengajukan Topik…" : "Ajukan Topik ke Dosen Pembimbing"}
+              </Button>
+            </form>
+            )}
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          {/* Bar Pencarian & Filter Bidang Fokus */}
+          <Card className="shadow-xs p-3 sm:p-4">
         <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3 items-stretch sm:items-center">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -257,8 +450,8 @@ export function TopicsPage() {
               Pembimbing: {myThesis.supervisors?.[0]?.name ?? "Belum ditentukan"} ({myThesis.stage})
             </div>
           </div>
-          <Button variant="outline" size="sm" onClick={() => nav({ to: "/tesis" })} className="text-xs h-8 whitespace-nowrap self-start sm:self-auto">
-            Lihat Profil Tesis
+          <Button variant="outline" size="sm" onClick={() => nav({ to: "/" })} className="text-xs h-8 whitespace-nowrap self-start sm:self-auto">
+            Lihat di Dashboard
           </Button>
         </div>
       )}
@@ -331,7 +524,7 @@ export function TopicsPage() {
                           <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200">
                             <Check size={14} /> Topik Aktif Anda
                           </span>
-                        ) : (
+                        ) : hasActiveTopic ? null : (
                           <Button
                             size="sm"
                             disabled={isFull || selectMutation.isPending}
@@ -379,6 +572,8 @@ export function TopicsPage() {
             );
           })}
         </div>
+      )}
+      </>
       )}
 
       {/* Modal Tambah / Edit Topik */}

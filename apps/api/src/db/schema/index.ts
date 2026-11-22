@@ -6,4 +6,5 @@ export * from "./activity";
 export * from "./documents";
 export * from "./scheduling";
 export * from "./system";
+export * from "./seminars";
 export * from "./relations";

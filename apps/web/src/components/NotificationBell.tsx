@@ -11,9 +11,9 @@ export function NotificationBell() {
   const [open, setOpen] = useState(false);
   const qc = useQueryClient();
   const nav = useNavigate();
-  const { data } = useQuery({ queryKey: ["notifications"], queryFn: () => unwrap(client.api.v1.notifications.$get()), refetchInterval: 8000 });
-  const readAll = useMutation({ mutationFn: () => unwrap(client.api.v1.notifications["read-all"].$post()), onSuccess: () => qc.invalidateQueries({ queryKey: ["notifications"] }) });
-  const readOne = useMutation({ mutationFn: (id: string) => unwrap(client.api.v1.notifications[":id"].read.$post({ param: { id } })), onSuccess: () => qc.invalidateQueries({ queryKey: ["notifications"] }) });
+  const { data } = useQuery({ queryKey: ["notifications"], queryFn: () => unwrap(client.api.notifications.$get()), refetchInterval: 8000 });
+  const readAll = useMutation({ mutationFn: () => unwrap(client.api.notifications["read-all"].$post()), onSuccess: () => qc.invalidateQueries({ queryKey: ["notifications"] }) });
+  const readOne = useMutation({ mutationFn: (id: string) => unwrap(client.api.notifications[":id"].read.$post({ param: { id } })), onSuccess: () => qc.invalidateQueries({ queryKey: ["notifications"] }) });
 
   return (
     <div className="relative">

@@ -30,6 +30,7 @@ export const lecturers = pgTable("lecturers", {
   programId: uuid("program_id").notNull().references(() => programs.id),
   expertise: text("expertise"),
   isActiveSupervisor: boolean("is_active_supervisor").notNull().default(false),
+  quota: integer("quota").notNull().default(5),
 }, (t) => [index("lecturers_nip_idx").on(t.nip), index("lecturers_user_id_idx").on(t.userId)]);
 
 export const roles = pgTable("roles", {

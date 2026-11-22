@@ -9,6 +9,7 @@ import { TopicsPage } from "./pages/Topics";
 import { LogbookListPage } from "./pages/LogbookList";
 import { LogbookFormPage } from "./pages/LogbookForm";
 import { ValidationQueuePage } from "./pages/ValidationQueue";
+import { SeminarPage } from "./pages/Seminar";
 
 type Role = (typeof ROLE_CODES)[number];
 export const roleOf = (): Role | null => {
@@ -33,9 +34,10 @@ const thesis = createRoute({ getParentRoute: () => shell, path: "/tesis", compon
 const logbooks = createRoute({ getParentRoute: () => shell, path: "/logbook", beforeLoad: needRole("MAHASISWA"), component: LogbookListPage });
 const logbookNew = createRoute({ getParentRoute: () => shell, path: "/logbook/baru", beforeLoad: needRole("MAHASISWA"), component: LogbookFormPage });
 const logbookEdit = createRoute({ getParentRoute: () => shell, path: "/logbook/$logbookId/edit", beforeLoad: needRole("MAHASISWA"), component: LogbookFormPage });
-const queue = createRoute({ getParentRoute: () => shell, path: "/validasi", beforeLoad: needRole("PEMBIMBING", "KOORDINATOR"), component: ValidationQueuePage });
+const queue = createRoute({ getParentRoute: () => shell, path: "/validasi", beforeLoad: needRole("PEMBIMBING", "KOORDINATOR", "KEPALA_PRODI"), component: ValidationQueuePage });
+const seminar = createRoute({ getParentRoute: () => shell, path: "/seminar", component: SeminarPage });
 
-const routeTree = root.addChildren([login, shell.addChildren([index, topics, thesis, logbooks, logbookNew, logbookEdit, queue])]);
+const routeTree = root.addChildren([login, shell.addChildren([index, topics, thesis, logbooks, logbookNew, logbookEdit, queue, seminar])]);
 export const router = createRouter({ routeTree });
 declare module "@tanstack/react-router" { interface Register { router: typeof router } }
 export { logbookEdit };

@@ -93,6 +93,25 @@ export const authRoutes = new Hono<Env>()
       user: { id: user.id, name: user.name, username: user.username, email: user.email, role: activeRole, roles },
     });
   })
+  .post("/switch-role", authenticate, async (c) => {
+    const body = await c.req.json().catch(() => ({}));
+    const role = body.role as RoleCode;
+    const u = c.get("user");
+    if (!role) return c.json({ error: "Peran wajib dipilih" }, 400);
+
+    const roles = await rolesOf(u.sub);
+    if (!roles.includes(role)) {
+      return c.json({ error: `Akun Anda tidak memiliki peran ${ROLE_LABELS[role] ?? role}` }, 403);
+    }
+
+    const session = { sub: u.sub, name: u.name, role, exp: Math.floor(Date.now() / 1000) + 86400 };
+    const token = await sign(session, JWT_SECRET);
+    await audit(u.sub, "SWITCH_ROLE", "user", u.sub, { from: u.role, to: role });
+    return c.json({
+      token,
+      user: { id: u.sub, name: u.name, role, roles },
+    });
+  })
   .get("/me", authenticate, async (c) => {
     const u = c.get("user");
     const user = await db.query.users.findFirst({ where: eq(s.users.id, u.sub), with: { student: true, lecturer: true } });

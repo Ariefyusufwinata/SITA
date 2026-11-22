@@ -1,6 +1,7 @@
-export const ROLE_CODES = ["MAHASISWA","PEMBIMBING","PENGUJI","ADMIN_PRODI","KOORDINATOR","ADMIN_TI"] as const;
+export const ROLE_CODES = ["MAHASISWA","PEMBIMBING","PENGUJI","ADMIN_PRODI","KOORDINATOR","KEPALA_PRODI","ADMIN_TI"] as const;
 export const SEMESTERS = ["GANJIL","GENAP"] as const;
 export const THESIS_STAGES = ["PROPOSAL","PEMANTAUAN","SEMINAR","SIDANG_AKHIR","LULUS"] as const;
+export const PROPOSAL_STAGES = ["PROPOSAL","PEMANTAUAN","SEMINAR"] as const;
 export const THESIS_STATUSES = ["AKTIF","NONAKTIF","SELESAI"] as const;
 export const SUPERVISOR_TYPES = ["PEMBIMBING_1","PEMBIMBING_2"] as const;
 export const LOGBOOK_STATUSES = ["DRAFT","MENUNGGU_VALIDASI","DISETUJUI","PERLU_REVISI","DIBATALKAN"] as const;
@@ -21,7 +22,7 @@ export const TOPIC_STATUSES = ["TERSEDIA","PENUH","DITUTUP"] as const;
 
 export const ROLE_LABELS: Record<(typeof ROLE_CODES)[number], string> = {
   MAHASISWA: "Mahasiswa", PEMBIMBING: "Dosen Pembimbing", PENGUJI: "Dosen Penguji",
-  ADMIN_PRODI: "Admin Prodi", KOORDINATOR: "Koordinator Tesis", ADMIN_TI: "Admin TI",
+  ADMIN_PRODI: "Admin Prodi", KOORDINATOR: "Koordinator Tesis", KEPALA_PRODI: "Kepala Program Studi", ADMIN_TI: "Admin TI",
 };
 export const TOPIC_STATUS_LABELS: Record<(typeof TOPIC_STATUSES)[number], string> = {
   TERSEDIA: "Tersedia", PENUH: "Penuh", DITUTUP: "Ditutup",
@@ -31,6 +32,6 @@ export const LOGBOOK_STATUS_LABELS: Record<(typeof LOGBOOK_STATUSES)[number], st
   PERLU_REVISI: "Perlu Revisi", DIBATALKAN: "Dibatalkan",
 };
 export const THESIS_STAGE_LABELS: Record<(typeof THESIS_STAGES)[number], string> = {
-  PROPOSAL: "Proposal", PEMANTAUAN: "Pemantauan", SEMINAR: "Seminar", SIDANG_AKHIR: "Sidang Akhir", LULUS: "Lulus",
+  PROPOSAL: "Proposal", PEMANTAUAN: "Bimbingan", SEMINAR: "Seminar", SIDANG_AKHIR: "Sidang Akhir", LULUS: "Lulus",
 };
 export const SEMESTER_TARGET = 8;

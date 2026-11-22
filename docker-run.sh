@@ -16,14 +16,14 @@ case "${1:-up}" in
     until docker exec db pg_isready -U sita -d sita_msf >/dev/null 2>&1; do sleep 1; done
 
     # nama container "api" harus tetap, karena dipakai nginx (proxy_pass http://api:3000)
-    docker run -d --name api --network $NET -p 3000:3000 \
+    docker run -d --name api --network $NET \
       -e DATABASE_URL=postgres://sita:sita@db:5432/sita_msf \
       -e JWT_SECRET=dev-secret-change-me -e PORT=3000 \
       -v sita-uploads:/app/apps/api/uploads \
       sita-api
 
-    docker run -d --name web --network $NET -p 8080:80 sita-web
-    echo "Selesai. Jalankan './docker-run.sh init' sekali untuk membuat skema + seed, lalu buka http://localhost:8080"
+    docker run -d --name web --network $NET -p 3000:80 sita-web
+    echo "Selesai. Jalankan './docker-run.sh init' sekali untuk membuat skema + seed, lalu buka http://localhost:3000"
     ;;
   init)
     docker exec api bunx drizzle-kit push --force

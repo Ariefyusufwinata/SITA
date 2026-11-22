@@ -1,16 +1,18 @@
 import { useState } from "react";
 import { Link, Outlet, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { BookOpen, ClipboardCheck, Compass, GraduationCap, LayoutDashboard, LogOut, Menu, X } from "lucide-react";
+import { BookOpen, ClipboardCheck, Compass, FileCode2, GraduationCap, LayoutDashboard, LogOut, Menu, Presentation, X } from "lucide-react";
 import { ROLE_LABELS, type ROLE_CODES } from "@sita/shared";
 import { auth, client, unwrap } from "@/lib/api";
 import { Button } from "./ui";
 import { NotificationBell } from "./NotificationBell";
+import { RoleSwitcher } from "./RoleSwitcher";
+import { UserProfile } from "./UserProfile";
 
 type Role = (typeof ROLE_CODES)[number];
 
 export function useMe() {
-  return useQuery({ queryKey: ["me"], queryFn: () => unwrap(client.api.v1.auth.me.$get()) });
+  return useQuery({ queryKey: ["me"], queryFn: () => unwrap(client.api.auth.me.$get()) });
 }
 
 export function Layout() {
@@ -22,10 +24,10 @@ export function Layout() {
   const role = (auth.role as Role | null) ?? me?.role;
   const items = [
     { to: "/", label: "Dashboard", icon: LayoutDashboard, show: true },
-    { to: "/topik", label: role === "MAHASISWA" ? "Pilihan Topik Riset" : "Katalog Topik Riset", icon: Compass, show: true },
-    { to: "/tesis", label: "Profil Tesis", icon: GraduationCap, show: role === "MAHASISWA" || role === "PEMBIMBING" || role === "KOORDINATOR" || role === "ADMIN_PRODI" },
+    { to: "/topik", label: role === "MAHASISWA" ? "Proposal & Topik" : "Katalog Topik Riset", icon: Compass, show: true },
     { to: "/logbook", label: "Logbook Bimbingan", icon: BookOpen, show: role === "MAHASISWA" },
-    { to: "/validasi", label: "Antrean Validasi", icon: ClipboardCheck, show: role === "PEMBIMBING" || role === "KOORDINATOR" },
+    { to: "/validasi", label: "Antrean Bimbingan", icon: ClipboardCheck, show: role === "PEMBIMBING" || role === "KOORDINATOR" || role === "KEPALA_PRODI" },
+    { to: "/seminar", label: role === "MAHASISWA" ? "Seminar Proposal" : role === "PENGUJI" ? "Penilaian Seminar" : "Seminar Proposal", icon: Presentation, show: true },
   ] as const;
 
   const handleLogout = () => {
@@ -78,8 +80,16 @@ export function Layout() {
                 </Link>
               ))}
             </nav>
-            <div className="border-t border-border pt-4">
-              <Button variant="outline" className="w-full justify-center text-xs" onClick={handleLogout}>
+            <div className="border-t border-border pt-4 flex flex-col gap-3">
+              <div>
+                <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5 px-1">Ganti Peran:</span>
+                <RoleSwitcher fullWidth />
+              </div>
+              <Button
+                variant="destructive"
+                className="w-full justify-center text-xs font-semibold bg-red-600 hover:bg-red-700 text-white shadow-xs cursor-pointer"
+                onClick={handleLogout}
+              >
                 <LogOut size={14} /> Keluar
               </Button>
             </div>
@@ -99,21 +109,11 @@ export function Layout() {
               <img src="/logo-icon.jpg" alt="Logo SITA" className="h-7 w-7 object-contain" />
               <span className="font-bold text-sm text-primary">SITA</span>
             </div>
-            <span className="hidden lg:inline text-xs text-muted-foreground">Waktu: Asia/Jakarta (WIB)</span>
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
             <NotificationBell />
-            <div className="text-right leading-tight max-w-[140px] sm:max-w-none truncate">
-              <div className="text-xs sm:text-sm font-medium truncate">{me?.name}</div>
-              <div className="text-[10px] sm:text-xs text-muted-foreground truncate">{role && (ROLE_LABELS[role] ?? role)}</div>
-            </div>
-            <Button variant="outline" size="sm" className="hidden sm:inline-flex" onClick={handleLogout}>
-              <LogOut size={14} /> Keluar
-            </Button>
-            <Button variant="ghost" size="icon" className="sm:hidden" onClick={handleLogout} title="Keluar">
-              <LogOut size={16} />
-            </Button>
+            <UserProfile onLogout={handleLogout} />
           </div>
         </header>
 

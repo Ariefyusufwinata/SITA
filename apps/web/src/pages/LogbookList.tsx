@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { createColumnHelper, flexRender, getCoreRowModel, getSortedRowModel, useReactTable, type SortingState } from "@tanstack/react-table";
 import { LOGBOOK_STATUSES, LOGBOOK_STATUS_LABELS } from "@sita/shared";
-import { client, downloadAttachment, unwrap } from "@/lib/api";
+import { client, unwrap } from "@/lib/api";
 import { fmtDate } from "@/lib/utils";
 import { Button, Card, Select, StatusBadge } from "@/components/ui";
 
@@ -14,7 +14,7 @@ export function LogbookListPage() {
   const [sorting, setSorting] = useState<SortingState>([]);
   const { data = [], isLoading, error } = useQuery({
     queryKey: ["logbooks", status],
-    queryFn: () => unwrap(client.api.v1.logbooks.$get({ query: status ? { status } : {} })),
+    queryFn: () => unwrap(client.api.logbooks.$get({ query: status ? { status } : {} })),
   });
   type Row = (typeof data)[number];
 
@@ -37,26 +37,19 @@ export function LogbookListPage() {
         header: "Versi",
         cell: (c) => <span className="font-mono text-center block">v{c.getValue() || 0}</span>,
       }),
-      h.accessor("attachmentName", {
-        header: "Lampiran",
-        enableSorting: false,
-        cell: (c) =>
-          c.getValue() ? (
-            <button
-              type="button"
-              className="text-primary hover:underline text-xs max-w-[120px] truncate block text-left"
-              onClick={() => downloadAttachment(c.row.original.attachmentKey!, c.getValue()!)}
-              title={c.getValue()!}
-            >
-              📎 {c.getValue()}
-            </button>
-          ) : (
-            <span className="text-muted-foreground">-</span>
-          ),
-      }),
       h.accessor("status", {
-        header: "Status",
-        cell: (c) => <StatusBadge status={c.getValue()} label={LOGBOOK_STATUS_LABELS[c.getValue()]} />,
+        header: "Status Validasi",
+        cell: (c) => {
+          const s = c.getValue();
+          const orig = c.row.original as any;
+          const isPending = s === "MENUNGGU_VALIDASI";
+          const multi = orig.totalSupervisors > 1;
+          const label =
+            isPending && multi
+              ? `Menunggu (${orig.approvedCount}/${orig.totalSupervisors} Pembimbing)`
+              : LOGBOOK_STATUS_LABELS[s];
+          return <StatusBadge status={s} label={label} />;
+        },
       }),
       h.display({
         id: "aksi",

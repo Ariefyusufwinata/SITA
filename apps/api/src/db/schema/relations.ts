@@ -6,6 +6,7 @@ import { activityTypes, activityPeriods, documentRequirements, applications } fr
 import { documents, documentVersions, applicationDocuments, documentReviews, approvalSteps } from "./documents";
 import { schedules, examinerAssignments, sessionResults, revisionItems, revisionSubmissions } from "./scheduling";
 import { notifications, auditEvents } from "./system";
+import { seminars, seminarEvaluations } from "./seminars";
 
 export const usersRelations = relations(users, ({ one, many }) => ({
   student: one(students, { fields: [users.id], references: [students.userId] }),
@@ -54,6 +55,7 @@ export const thesisProjectsRelations = relations(thesisProjects, ({ one, many })
   logbooks: many(logbooks),
   applications: many(applications),
   documents: many(documents),
+  seminars: many(seminars),
 }));
 export const supervisorAssignmentsRelations = relations(supervisorAssignments, ({ one }) => ({
   thesis: one(thesisProjects, { fields: [supervisorAssignments.thesisId], references: [thesisProjects.id] }),
@@ -149,4 +151,14 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
 }));
 export const auditEventsRelations = relations(auditEvents, ({ one }) => ({
   actor: one(users, { fields: [auditEvents.actorUserId], references: [users.id] }),
+}));
+
+export const seminarsRelations = relations(seminars, ({ one, many }) => ({
+  thesis: one(thesisProjects, { fields: [seminars.thesisId], references: [thesisProjects.id] }),
+  evaluations: many(seminarEvaluations),
+}));
+
+export const seminarEvaluationsRelations = relations(seminarEvaluations, ({ one }) => ({
+  seminar: one(seminars, { fields: [seminarEvaluations.seminarId], references: [seminars.id] }),
+  lecturer: one(lecturers, { fields: [seminarEvaluations.lecturerId], references: [lecturers.id] }),
 }));

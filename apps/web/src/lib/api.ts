@@ -3,17 +3,77 @@ import type { AppType } from "@sita/api/app";
 
 const TOKEN_KEY = "sita_token";
 const ROLE_KEY = "sita_role";
+const ACTIVE_ROLE_KEY = "sita_role_active";
 
 export const auth = {
   get token() { return localStorage.getItem(TOKEN_KEY); },
-  get role() { return localStorage.getItem(ROLE_KEY); },
-  set(t: string, r?: string) {
-    localStorage.setItem(TOKEN_KEY, t);
-    if (r) localStorage.setItem(ROLE_KEY, r);
+
+  // Ambil daftar roles dari localStorage (disimpan dalam bentuk array)
+  get roles(): string[] {
+    const raw = localStorage.getItem(ROLE_KEY);
+    let list: string[] = [];
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) list = parsed.map(String);
+        else list = [String(parsed)];
+      } catch {
+        list = [raw];
+      }
+    }
+    // Jika peran aktif yang di-set berada di luar array, tetap masukkan agar tampil di UI
+    const active = localStorage.getItem(ACTIVE_ROLE_KEY);
+    if (active && !list.includes(active)) {
+      list = [active, ...list];
+    }
+    return list;
   },
+
+  // Peran aktif yang sedang digunakan (prioritaskan sita_role_active meskipun di luar array)
+  get activeRole(): string | null {
+    const active = localStorage.getItem(ACTIVE_ROLE_KEY);
+    if (active) return active;
+    const list = auth.roles;
+    return list[0] ?? null;
+  },
+
+  // Kompatibilitas dengan pembacaan auth.role
+  get role(): string | null {
+    return auth.activeRole;
+  },
+
+  // Simpan token dan roles (array) ke localStorage
+  set(t: string, rolesOrActive?: string | string[], active?: string) {
+    localStorage.setItem(TOKEN_KEY, t);
+    if (Array.isArray(rolesOrActive)) {
+      localStorage.setItem(ROLE_KEY, JSON.stringify(rolesOrActive));
+      const chosen = active ?? rolesOrActive[0] ?? "";
+      localStorage.setItem(ACTIVE_ROLE_KEY, chosen);
+    } else if (rolesOrActive) {
+      try {
+        const parsed = JSON.parse(rolesOrActive);
+        if (Array.isArray(parsed)) {
+          localStorage.setItem(ROLE_KEY, JSON.stringify(parsed));
+          const chosen = active ?? parsed[0] ?? "";
+          localStorage.setItem(ACTIVE_ROLE_KEY, chosen);
+          return;
+        }
+      } catch {}
+      localStorage.setItem(ROLE_KEY, JSON.stringify([rolesOrActive]));
+      const chosen = active ?? rolesOrActive;
+      localStorage.setItem(ACTIVE_ROLE_KEY, chosen);
+    }
+  },
+
+  // Ganti peran aktif di localStorage
+  setActiveRole(r: string) {
+    localStorage.setItem(ACTIVE_ROLE_KEY, r);
+  },
+
   clear() {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(ROLE_KEY);
+    localStorage.removeItem(ACTIVE_ROLE_KEY);
   },
 };
 
@@ -38,23 +98,4 @@ export async function unwrap<R extends { ok: boolean; status: number; json(): Pr
     throw new ApiError(body?.error ?? body?.message ?? "Terjadi kesalahan", res.status);
   }
   return body;
-}
-
-export async function uploadAttachment(file: File) {
-  const fd = new FormData(); fd.append("file", file);
-  const headers: Record<string, string> = { Authorization: `Bearer ${auth.token}` };
-  if (auth.role) headers["X-User-Role"] = auth.role;
-  const res = await fetch("/api/v1/logbooks/upload", { method: "POST", body: fd, headers });
-  const body = await res.json();
-  if (!res.ok) throw new ApiError(body.error ?? "Gagal mengunggah", res.status);
-  return body as { attachmentKey: string; attachmentName: string };
-}
-
-export async function downloadAttachment(key: string, name: string) {
-  const headers: Record<string, string> = { Authorization: `Bearer ${auth.token}` };
-  if (auth.role) headers["X-User-Role"] = auth.role;
-  const res = await fetch(`/api/v1/logbooks/files/${key}`, { headers });
-  if (!res.ok) throw new Error("Gagal mengunduh");
-  const url = URL.createObjectURL(await res.blob());
-  const a = document.createElement("a"); a.href = url; a.download = name; a.click(); URL.revokeObjectURL(url);
 }
