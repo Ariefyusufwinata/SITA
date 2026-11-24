@@ -12,5 +12,5 @@ COPY apps/api apps/api
 WORKDIR /app/apps/api
 ENV PORT=3000
 EXPOSE 3000
-RUN mkdir -p uploads
-CMD ["bun", "src/index.ts"]
+RUN mkdir -p uploads && chmod +x start.sh
+CMD ["./start.sh"]
