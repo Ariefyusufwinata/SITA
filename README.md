@@ -48,7 +48,7 @@ Buka http://localhost:3000 (nginx menyajikan web & memproxy `/api` ke container 
 ```
 
 ## Dokploy
-Gunakan `docker-compose.yml` (tipe Compose); domain → service `web` port 80. Setelah deploy, jalankan sekali di terminal container `api`: `bunx drizzle-kit push --force` lalu `bun src/db/seed.ts`.
+Gunakan `docker-compose.yml` (tipe Compose); domain → service `web` port 3000 (atau 80). Setelah deploy, jalankan sekali di terminal container `api`: `bunx drizzle-kit push --force` lalu `bun src/db/seed.ts`.
 
 ## Kredensial Pengguna (Testing Lab)
 Format Username: huruf kecil tanpa titik, angka, atau karakter khusus (`[a-z]`).
