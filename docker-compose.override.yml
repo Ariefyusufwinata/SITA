@@ -1,9 +1,0 @@
-# File override ini otomatis dibaca oleh Docker Compose saat dijalankan di komputer lokal:
-#   docker compose up -d
-#
-# Pada deployment Dokploy (yang menjalankan: docker compose -f ./docker-compose.yml up),
-# file override ini diabaikan secara otomatis sehingga tidak terjadi bentrok port 3000 dengan Dokploy.
-services:
-  web:
-    ports:
-      - "${WEB_PORT:-3000}:80"
